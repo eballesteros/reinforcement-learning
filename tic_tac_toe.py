@@ -1,4 +1,6 @@
+from tqdm import tqdm
 import numpy as np
+from tic_tac_toe_helpers import state_to_board, board_to_state, _player_won, switch_value
 
 LENGTH = 3
 
@@ -6,6 +8,20 @@ class Agent():
     def __init__(self,value, strategy):
         self.value = value
         self.strategy = strategy
+        self.value_function = self.initialize_value_function()
+    
+    def get_state_value(self,state):
+        board = state_to_board(state)
+        if _player_won(self.value, board):
+            return 1
+        if _player_won(switch_value(self.value), board):
+            return 0
+        if (board != 0).all():
+            return 0
+        return 0.5
+    
+    def initialize_value_function(self):
+        return {state:self.get_state_value(state) for state in tqdm(range(3**9))}
     
     def make_decision(self, env):
         if self.strategy == 'random':
@@ -24,31 +40,23 @@ class Enviroment():
     def __init__(self):
         self.board = np.zeros((3,3))
         self.x = 1
-        self.o = -1
+        self.o = 2
         
     def update_board(self,coordinates, value):
         x, y = coordinates
         self.board[y,x] = value
         
     def player_won(self, player_value):
-        player_marks = self.board == player_value
-        
-        #check horzontal and vertical
-        for ax in [0,1]:
-            if (player_marks.sum(axis = ax) == 3).any():
-                    return True
-                
-        #check diagonals
-        if player_marks.diagonal().sum() == 3 or np.fliplr(player_marks).diagonal().sum() == 3:
-            return True
-        
-        return False
+        return _player_won(player_value, self.board)
     
     def get_empty_spots(self):
         return set(zip(np.where(self.board == 0)[1],np.where(self.board == 0)[0]))
-        
+    
+    def get_state(self):
+        return board_to_state(self.board)
     
     def draw_board(self):
+        print("State {}".format(self.get_state()))
         for i in range(LENGTH):
             print("-------------")
             for j in range(LENGTH):
